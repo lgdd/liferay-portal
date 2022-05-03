@@ -17,8 +17,8 @@ package com.liferay.health.check.model;
 import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.json.JSONSerializer;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Represent a response body for the readiness and liveness probes and provide information about the
@@ -29,12 +29,12 @@ import java.util.List;
  */
 public class HealthCheckResponse {
 
-	public static HealthCheckResponseBuilder builder() {
-		return new HealthCheckResponseBuilder();
+	public static HealthCheckBuilderName builder() {
+		return new HealthCheckResponseBuilderImpl();
 	}
 
-	public List<String> getIssues() {
-		return _issues;
+	public Map<String, String> getData() {
+		return _data;
 	}
 
 	public String getName() {
@@ -56,32 +56,73 @@ public class HealthCheckResponse {
 		return _jsonSerializer.serializeDeep(this);
 	}
 
-	public static class HealthCheckResponseBuilder {
+	public interface HealthCheckBuilder {
 
+		public HealthCheckResponse build();
+
+		public HealthCheckBuilder withData(Map<String, String> data);
+
+		public HealthCheckBuilder withData(String key, String value);
+
+	}
+
+	public interface HealthCheckBuilderName {
+
+		public HealthCheckBuilderStatus name(String name);
+
+	}
+
+	public interface HealthCheckBuilderStatus {
+
+		public HealthCheckBuilder down();
+
+		public HealthCheckBuilder up();
+
+	}
+
+	protected HealthCheckResponse() {
+	}
+
+	protected static class HealthCheckResponseBuilderImpl
+		implements HealthCheckBuilder, HealthCheckBuilderName,
+				   HealthCheckBuilderStatus {
+
+		@Override
 		public HealthCheckResponse build() {
 			return _healthCheckResponse;
 		}
 
-		public HealthCheckResponseBuilder down() {
+		@Override
+		public HealthCheckBuilder down() {
 			_healthCheckResponse._status = HealthCheckStatus.DOWN;
 
 			return this;
 		}
 
-		public HealthCheckResponseBuilder issues(List<String> issues) {
-			_healthCheckResponse._issues.addAll(issues);
-
-			return this;
-		}
-
-		public HealthCheckResponseBuilder name(String name) {
+		@Override
+		public HealthCheckBuilderStatus name(String name) {
 			_healthCheckResponse._name = name;
 
 			return this;
 		}
 
-		public HealthCheckResponseBuilder up() {
+		@Override
+		public HealthCheckBuilder up() {
 			_healthCheckResponse._status = HealthCheckStatus.UP;
+
+			return this;
+		}
+
+		@Override
+		public HealthCheckBuilder withData(Map<String, String> data) {
+			_healthCheckResponse._data.putAll(data);
+
+			return this;
+		}
+
+		@Override
+		public HealthCheckBuilder withData(String key, String value) {
+			_healthCheckResponse._data.put(key, value);
 
 			return this;
 		}
@@ -91,10 +132,7 @@ public class HealthCheckResponse {
 
 	}
 
-	protected HealthCheckResponse() {
-	}
-
-	private final List<String> _issues = new ArrayList<>();
+	private final Map<String, String> _data = new HashMap<>();
 	private final JSONSerializer _jsonSerializer =
 		JSONFactoryUtil.createJSONSerializer();
 	private String _name;

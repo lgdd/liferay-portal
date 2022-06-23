@@ -1,0 +1,141 @@
+/**
+ * Copyright (c) 2000-present Liferay, Inc. All rights reserved.
+ *
+ * This library is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU Lesser General Public License as published by the Free
+ * Software Foundation; either version 2.1 of the License, or (at your option)
+ * any later version.
+ *
+ * This library is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more
+ * details.
+ */
+
+package com.liferay.health.check.model;
+
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
+import com.liferay.portal.kernel.json.JSONSerializer;
+
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * Represent a response body for the readiness and liveness probes and provide information about the
+ * status (UP or DOWN), a name to identify the health checker and a list of issues detected, if any.
+ *
+ * @author Louis-Guillaume Durand
+ * @see HealthCheckStatus
+ */
+public class HealthCheckResponse {
+
+	public static HealthCheckBuilderName builder() {
+		return new HealthCheckResponseBuilderImpl();
+	}
+
+	public Map<String, String> getData() {
+		return _data;
+	}
+
+	public String getName() {
+		return _name;
+	}
+
+	public HealthCheckStatus getStatus() {
+		return _status;
+	}
+
+	public String toJSON(boolean includeDetails) {
+		if (includeDetails) {
+			_jsonSerializer.include("name", "issues");
+		}
+		else {
+			_jsonSerializer.exclude("name", "issues");
+		}
+
+		return _jsonSerializer.serializeDeep(this);
+	}
+
+	public interface HealthCheckBuilder {
+
+		public HealthCheckResponse build();
+
+		public HealthCheckBuilder withData(Map<String, String> data);
+
+		public HealthCheckBuilder withData(String key, String value);
+
+	}
+
+	public interface HealthCheckBuilderName {
+
+		public HealthCheckBuilderStatus name(String name);
+
+	}
+
+	public interface HealthCheckBuilderStatus {
+
+		public HealthCheckBuilder down();
+
+		public HealthCheckBuilder up();
+
+	}
+
+	protected HealthCheckResponse() {
+	}
+
+	protected static class HealthCheckResponseBuilderImpl
+		implements HealthCheckBuilder, HealthCheckBuilderName,
+				   HealthCheckBuilderStatus {
+
+		@Override
+		public HealthCheckResponse build() {
+			return _healthCheckResponse;
+		}
+
+		@Override
+		public HealthCheckBuilder down() {
+			_healthCheckResponse._status = HealthCheckStatus.DOWN;
+
+			return this;
+		}
+
+		@Override
+		public HealthCheckBuilderStatus name(String name) {
+			_healthCheckResponse._name = name;
+
+			return this;
+		}
+
+		@Override
+		public HealthCheckBuilder up() {
+			_healthCheckResponse._status = HealthCheckStatus.UP;
+
+			return this;
+		}
+
+		@Override
+		public HealthCheckBuilder withData(Map<String, String> data) {
+			_healthCheckResponse._data.putAll(data);
+
+			return this;
+		}
+
+		@Override
+		public HealthCheckBuilder withData(String key, String value) {
+			_healthCheckResponse._data.put(key, value);
+
+			return this;
+		}
+
+		private final HealthCheckResponse _healthCheckResponse =
+			new HealthCheckResponse();
+
+	}
+
+	private final Map<String, String> _data = new HashMap<>();
+	private final JSONSerializer _jsonSerializer =
+		JSONFactoryUtil.createJSONSerializer();
+	private String _name;
+	private HealthCheckStatus _status;
+
+}
